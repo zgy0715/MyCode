@@ -1,0 +1,240 @@
+﻿Python开发技术综合项目
+任务描述
+报告
+一、项目名称
+基于Scrapy的电影数据爬取与智能分析可视化系统
+二、项目背景与意义
+随着互联网的发展，电影数据在各大平台上不断积累。通过对这些数据进行采集、分析和可视化，可以帮助用户更好地了解电影市场趋势、观众偏好以及评分规律。
+本项目通过网络爬虫技术获取电影数据，并结合数据分析与可视化技术，对数据进行深入挖掘，同时研究网站的反爬虫机制，并引入AI辅助分析，提高数据处理的智能化水平。
+三、需求分析
+本项目需要实现以下功能：
+实现电影数据的自动化爬取 
+对数据进行清洗、分析与处理 
+进行可视化展示 
+研究网站反爬虫机制并提出解决方案 
+引入AI模型对数据进行智能分析 
+支持团队协作开发 
+四、系统设计
+4.1 系统总体架构
+数据源网站（豆瓣/猫眼）
+        ↓
+Scrapy爬虫系统
+        ↓
+Redis调度（分布式支持）
+        ↓
+数据存储（CSV / MySQL）
+        ↓
+数据分析（Pandas）
+        ↓
+数据可视化（pyecharts / matplotlib）
+        ↓
+AI分析模块
+4.2 功能模块设计
+（1）爬虫模块
+使用Scrapy框架实现数据爬取 
+爬取内容包括： 
+1）
+电影名称 
+2）
+评分 
+3）
+评论人数 
+4）
+类型 
+5）
+上映时间 
+6）
+简介 
+（2）数据存储模块
+数据保存为CSV文件或MySQL数据库 
+支持后续分析调用 
+（3）数据分析模块
+使用Pandas进行数据处理 
+分析内容： 
+1）
+评分分布 
+2）
+不同类型电影评分对比 
+3）
+评论人数与评分关系 
+4）
+年份趋势分析 
+（4）数据可视化模块
+使用pyecharts / matplotlib绘图 
+图表类型： 
+1）
+柱状图（评分分布） 
+2）
+折线图（时间趋势） 
+3）
+饼图（类型占比） 
+4）
+词云（评论分析） 
+（5）反爬虫研究模块
+分析网站的反爬虫策略：
+User-Agent检测 
+IP访问限制 
+请求频率控制 
+Cookie验证 
+解决方案：
+随机User-Agent 
+设置请求间隔 
+使用代理IP（模拟） 
+模拟浏览器请求头 
+（6）数据挖掘与决策模块（选做）
+使用简单算法进行数据挖掘 
+实现： 
+1）
+热门电影推荐 
+2）
+评分预测分析 
+（7）AI辅助分析模块（创新）
+利用AI模型生成数据分析报告 
+对评论进行情感分析 
+自动总结电影趋势 
+五、关键技术
+本项目涉及的主要技术包括：
+Python编程语言 
+Scrapy爬虫框架 
+Redis（分布式队列） 
+Pandas（数据分析） 
+Matplotlib / pyecharts（可视化） 
+requests / BeautifulSoup（辅助解析） 
+AI模型（辅助分析） 
+六、任务分解
+根据小组成员分工如下：
+成员
+任务
+谭国星
+爬虫开发
+韦林生
+数据清洗与分析
+吴思远
+数据可视化AI分析与文档整理
+赵广雨
+反爬虫研究
+七、团队协作
+使用Gitee进行项目管理 
+采用分支开发模式 
+每个成员负责独立模块 
+定期合并代码并测试 
+八、项目计划
+第1周
+确定项目选题 
+搭建开发环境 
+完成基础爬虫 
+第2周
+完善爬虫功能 
+实现数据存储 
+研究反爬机制 
+第3周
+数据分析 
+数据可视化实现 
+第4周
+AI分析模块 
+项目整合 
+完成文档与PPT 
+附件
+# 基础配置
+import requests
+from bs4 import BeautifulSoup
+import os
+import tqdm
+import re
+# 豆瓣 Top250 分页（每页25部，共10页）
+base_url = "https://movie.douban.com/top250?start={}&filter="
+urls = [base_url.format(i * 25) for i in range(10)]
+# 请求头
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36'
+}
+# 文件夹配置
+root_dir = "./豆瓣电影Top250/"
+text_path = root_dir + '电影文本'
+image_path = root_dir + '电影海报'
+result_path = text_path + '/豆瓣Top250.txt'
+# ===================== 工具函数 =====================
+def check_dir(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+# 创建文件夹
+check_dir(text_path)
+check_dir(image_path)
+# 获取页面
+def get_one_page(url):
+    try:
+        r = requests.get(url, headers=headers)
+        r.raise_for_status()
+        r.encoding = 'utf-8'
+        return r.text
+    except:
+        return ""
+# 获取图片内容
+def get_iter_content(url):
+    try:
+        r = requests.get(url, headers=headers)
+        r.raise_for_status()
+        return r.content
+    except:
+        return b""
+# 解析一页数据
+def get_items_html(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    items = soup.select('.item')
+    for item in items:
+        try:
+            title = item.select_one('.title').text.strip()
+            img = item.select_one('.pic img')['src']
+            info = item.select_one('.bd p').text.strip()
+            score = item.select_one('.rating_num').text.strip()
+            quote = item.select_one('.inq').text.strip() if item.select_one('.inq') else "无评语"
+            yield {
+                'title': title,
+                'img': img,
+                'info': info,
+                'score': score,
+                'quote': quote
+            }
+        except:
+            continue
+# 写入文件
+def add_item(item, path):
+    output = (
+        f"========================================\n"
+        f"电影名称：{item.get('title', '无')}\n"
+        f"评分：{item.get('score', '无')}\n"
+        f"简介信息：{item.get('info', '无')}\n"
+        f"经典评语：{item.get('quote', '无')}\n"
+        f"海报链接：{item.get('img', '无')}\n"
+        f"========================================\n\n\n"
+    )
+    with open(path, 'a', encoding='utf-8') as f:
+        f.write(output)
+# ===================== 开始爬取 Top250 =====================
+print("正在爬取 豆瓣电影 Top250 数据...")
+# 清空旧文件
+with open(result_path, 'w', encoding='utf-8') as f:
+    f.write("===== 豆瓣电影 Top250 =====\n\n")
+# 遍历10页爬取
+for url in tqdm.tqdm(urls, desc="爬取进度"):
+    html = get_one_page(url)
+    for item in get_items_html(html):
+        add_item(item, result_path)
+print("豆瓣 Top250 文本数据保存完成！")
+# ===================== 下载海报 =====================
+print("开始下载电影海报...")
+with open(result_path, 'r', encoding='utf-8') as f:
+    content = f.read()
+titles = re.findall(r"电影名称：(.*?)\n", content)
+imgs = re.findall(r"海报链接：(.*?)\n", content)
+bar = tqdm.tqdm(zip(titles, imgs), desc="下载进度", total=len(titles))
+for title, img in bar:
+    try:
+        # 过滤非法字符
+        title = re.sub(r'[\\/*?:"<>|]', "", title.strip())
+        img_data = get_iter_content(img.strip())
+        with open(f"{image_path}/{title}.jpg", 'wb') as f:
+            f.write(img_data)
+    except:
+        continue
+print("所有海报下载完成！")
